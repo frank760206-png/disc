@@ -51,6 +51,13 @@ const App = (() => {
     }
   }
 
+  // 不管貼上的是完整網址、多了空白或換行、手機自動加的符號，或只有部署 ID，都整理成標準網址
+  function normalizeUrl(raw) {
+    const t = String(raw || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '');
+    const m = t.match(/\/macros\/(?:[^/]+\/)?s\/([A-Za-z0-9_-]{20,})\/exec/) || t.match(/^(AKfyc[A-Za-z0-9_-]{20,})$/);
+    return m ? `https://script.google.com/macros/s/${m[1]}/exec` : '';
+  }
+
   function openSettings(cancellable = true) {
     placeTabs(false);
     $('rev').hidden = true;
@@ -58,7 +65,7 @@ const App = (() => {
     $('pop').hidden = true;
     $('setup').hidden = false;
     document.querySelectorAll('.apptabs .seg button').forEach(b => b.classList.remove('on'));
-    $('setUrl').value = settings.url || '';
+    $('setUrl').value = settings.url || normalizeUrl(decodeURIComponent((location.hash.match(/[#&]u=([^&]+)/) || [])[1] || ''));
     $('setToken').value = settings.token || '';
     $('setName').value = settings.name || '';
     $('setDateFmt').value = U.prefs.dateFmt;
@@ -70,14 +77,16 @@ const App = (() => {
   }
 
   async function saveSettings() {
-    const s = { url: $('setUrl').value.trim(), token: $('setToken').value.trim(), name: $('setName').value.trim() };
+    const url = normalizeUrl($('setUrl').value);
+    if (url) $('setUrl').value = url;
+    const s = { url: url || $('setUrl').value.trim(), token: $('setToken').value.trim(), name: $('setName').value.trim() };
     const stores = [...new Set($('setStores').value.split(/[,，、\s]+/).map(x => x.trim()).filter(Boolean))];
     const shorts = $('setStoreShort').value.split(/[,，、\s]+/).map(x => x.trim()).filter(Boolean);
     const storeShort = {};
     stores.forEach((c, i) => { storeShort[c] = shorts[i] || c.charAt(0).toUpperCase(); });
     const p = { dateFmt: $('setDateFmt').value, startDay: Number($('setStartDay').value), stores, storeShort };
     const msg = (type, t) => { $('setMsg').className = 'msg ' + type; $('setMsg').textContent = t; $('setMsg').hidden = false; };
-    if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(s.url)) return msg('err', '網址格式不對，應該是 https://script.google.com/macros/s/……/exec');
+    if (!url) return msg('err', '網址格式不對：請貼上 Apps Script 部署網址（https://script.google.com/macros/s/……/exec），或只貼 AKfycb 開頭的部署 ID');
     if (!s.token) return msg('err', '請填寫密碼');
     if (!s.name) return msg('err', '請填寫姓名');
     if (!stores.length) return msg('err', '請至少填一間店');
