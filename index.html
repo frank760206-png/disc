@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>營業額與排班</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="營業額排班">
+  <meta name="theme-color" content="#0f766e">
+  <link rel="apple-touch-icon" href="icons/icon180.png">
+  <link rel="icon" href="icons/icon192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="sidepanel.css">
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <header class="apptabs" id="appTop">
+    <div class="seg" id="appSeg" role="tablist">
+      <button data-tab="rev" role="tab">營業額</button>
+      <button data-tab="sched" role="tab">排班</button>
+    </div>
+    <button id="openSettings" class="icon" title="設定" aria-label="設定">⚙</button>
+  </header>
+
+  <!-- 設定 -->
+  <section id="setup" class="setup" hidden>
+    <h1>設定</h1>
+    <h2>連線</h2>
+    <label for="setUrl">試算表網址（Apps Script 部署網址）</label>
+    <input id="setUrl" type="url" placeholder="https://script.google.com/macros/s/……/exec">
+    <label for="setToken">密碼</label>
+    <input id="setToken" type="password">
+    <label for="setName">你的姓名（記在營業額的「填寫人」）</label>
+    <input id="setName" type="text" maxlength="20">
+
+    <h2>顯示</h2>
+    <div class="grid2">
+      <div>
+        <label for="setDateFmt">日期格式</label>
+        <select id="setDateFmt"></select>
+      </div>
+      <div>
+        <label for="setStartDay">一週從哪天開始</label>
+        <select id="setStartDay"></select>
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label for="setStores">店名（用逗號分開）</label>
+        <input id="setStores" type="text" placeholder="MC, QV">
+      </div>
+      <div>
+        <label for="setStoreShort">簡稱（依店名順序）</label>
+        <input id="setStoreShort" type="text" placeholder="M, Q">
+      </div>
+    </div>
+    <p class="hint">簡稱會用在行事曆、員工卡片和試算表，例如 M10-5。</p>
+
+    <div class="row">
+      <button id="setSave" class="primary">儲存</button>
+      <button id="setCancel" class="ghost" hidden>取消</button>
+    </div>
+    <div id="setMsg" class="msg" hidden></div>
+  </section>
+
+  <!-- 營業額 -->
+  <section id="rev" class="rev" hidden>
+   <div class="revwrap">
+    <form id="revForm" novalidate>
+      <div class="revhead">
+        <h1>每日營業額</h1>
+        <span class="hint">填寫人：<span id="who"></span></span>
+      </div>
+
+      <div class="datenav">
+        <button type="button" id="revPrev" class="icon" title="前一天" aria-label="前一天">‹</button>
+        <button type="button" id="revDateBtn" class="datebtn" title="按一下選日期">
+          <span id="revDateText"></span><span id="revDateTag" class="tag" hidden></span><span class="caret">▾</span>
+        </button>
+        <button type="button" id="revNext" class="icon" title="後一天" aria-label="後一天">›</button>
+        <button type="button" id="revToday" class="ghost" hidden>今天</button>
+        <input id="date" type="date" class="hiddenpicker" tabindex="-1" aria-hidden="true">
+      </div>
+      <div id="revDayState" class="daystate"></div>
+
+      <div class="row3">
+        <div>
+          <label for="card">Card 刷卡</label>
+          <input id="card" class="amount" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+        </div>
+        <div>
+          <label for="cash">Cash 現金</label>
+          <input id="cash" class="amount" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+        </div>
+        <div>
+          <label for="panda">Panda</label>
+          <input id="panda" class="amount" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+        </div>
+      </div>
+
+      <div class="total"><span>收入合計</span><strong id="total">0</strong></div>
+
+      <label for="wage">Wage 現金支付薪資</label>
+      <input id="wage" class="amount" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+      <div id="wageCheck" class="wagecheck" hidden></div>
+
+      <label for="note">備註（選填）</label>
+      <textarea id="note" rows="2" placeholder="例如：下午停電提早打烊"></textarea>
+
+      <button id="revSubmit" class="primary wide" type="submit">送出</button>
+      <div id="revMsg" class="msg" hidden></div>
+
+      <div class="recent" id="recentBox" hidden>
+        <h2>你最近的記錄</h2>
+        <ul id="recent"></ul>
+      </div>
+    </form>
+
+    <section class="months">
+      <header class="mhead">
+        <div class="mnav">
+          <button type="button" id="mPrev" class="icon" title="往前一個月" aria-label="往前一個月">‹</button>
+          <b id="mRange"></b>
+          <button type="button" id="mNext" class="icon" title="往後一個月" aria-label="往後一個月">›</button>
+          <button type="button" id="mThis" class="ghost" hidden>本月</button>
+        </div>
+        <div class="row">
+          <div class="seg small" id="mMode"><button data-mode="cal">日曆</button><button data-mode="table">表格</button></div>
+          <div class="seg small" id="mCount"><button data-count="1">1 個月</button><button data-count="3">3 個月</button></div>
+        </div>
+      </header>
+      <div id="monthList" class="mlist"></div>
+    </section>
+   </div>
+  </section>
+
+  <!-- 排班 -->
+  <section id="sched" class="sched" hidden>
+    <div class="schedmain">
+      <aside class="pool">
+        <div class="pooltop" id="poolTop"></div>
+        <h2>員工</h2>
+        <p class="hint">拖到行事曆排班・點一下編輯・<span class="eyehint">眼睛</span>可隱藏</p>
+        <div id="staffList" class="staff"></div>
+        <form id="addStaff" class="addstaff" autocomplete="off">
+          <input id="newStaff" placeholder="新增員工" maxlength="20">
+          <button class="ghost" type="submit">＋ 新增</button>
+        </form>
+      </aside>
+      <div id="poolSplit" class="splitter" title="拖拉調整寬度，點兩下恢復"></div>
+
+      <div class="schedright">
+        <header class="caltop">
+          <div id="storeFilter" class="seg small storefilter" title="依店別篩選"></div>
+          <div class="weeknav">
+            <button id="prevWeek" class="icon" title="上一週" aria-label="上一週">‹</button>
+            <button id="weekLabel" class="weeklabel"></button>
+            <button id="nextWeek" class="icon" title="下一週" aria-label="下一週">›</button>
+            <button id="thisWeek" class="ghost" hidden>本週</button>
+            <input id="weekPick" type="date" class="hiddenpicker" tabindex="-1" aria-hidden="true">
+          </div>
+          <div class="tools" id="calTools">
+            <span id="saveState" class="savestate"></span>
+            <select id="viewMode" title="排列方式" aria-label="排列方式">
+              <option value="auto">自動</option>
+              <option value="week">一週</option>
+              <option value="day">單日</option>
+            </select>
+            <div class="menuwrap">
+              <button id="menuBtn" class="icon" title="更多" aria-label="更多">⋯</button>
+              <div id="menu" class="menu" hidden>
+                <button data-act="exportPdf">匯出班表 PDF（給員工）</button>
+                <button data-act="copyText">複製班表文字（貼到 LINE）</button>
+                <button data-act="copyLastWeek">套用上週班表</button>
+                <button data-act="clearWeek">清空這週</button>
+                <hr>
+                <button data-act="resetWidth">欄寬恢復自動</button>
+                <button data-act="reload">重新從試算表讀取</button>
+              </div>
+            </div>
+          </div>
+        </header>
+        <nav id="dayTabs" class="daytabs" hidden></nav>
+        <section id="grid" class="grid">
+          <div id="gridScroll" class="gridscroll">
+            <div id="gridHead" class="gridhead"></div>
+            <div id="gridBody" class="gridbody"></div>
+          </div>
+          <div id="footSplit" class="hsplit" title="上下拖拉調整合計的高度，點兩下恢復"></div>
+          <div id="footScroll" class="footscroll">
+            <div id="gridFoot" class="gridfoot"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="loading" class="loading" hidden>讀取中…</div>
+  </section>
+
+  <!-- 浮動元件 -->
+  <div id="pop" class="pop" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+  <div id="dialog" class="dialogwrap" hidden>
+    <div class="dialog">
+      <p id="dialogText"></p>
+      <div class="row end">
+        <button id="dialogNo" class="ghost">取消</button>
+        <button id="dialogYes" class="primary">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="chrome-shim.js"></script>
+  <script src="util.js"></script>
+  <script src="api.js"></script>
+  <script src="revenue.js"></script>
+  <script src="months.js"></script>
+  <script src="schedule.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

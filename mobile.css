@@ -1,0 +1,43 @@
+/* 手機／iPad 網頁版的補充樣式 */
+html, body { height: 100%; }
+body {
+  height: 100dvh;
+  /* 主畫面全螢幕時，避開瀏海和底部橫條 */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+/* iOS 輸入框字小於 16px 會自動放大畫面，所以輸入框統一 16px */
+input, select, textarea { font-size: 16px; }
+.pop { max-height: calc(100dvh - 12px); }
+
+/* 觸控：按鈕大一點 */
+@media (pointer: coarse) {
+  .icon { width: 36px; height: 36px; }
+  .card .eye, .card .cmode { width: 28px; height: 26px; }
+  .card { grid-template-columns: 28px minmax(0, 1fr); }
+  .card .wk span { line-height: 24px; font-size: 11px; }
+  .seg button { padding: 6px 14px; }
+  .menu button { padding: 11px 12px; }
+  .colrz { right: -8px; width: 16px; }
+  .hsplit { height: 12px; }
+  .splitter { width: 10px; }
+}
+
+/* 手機：員工列表固定寬度、工具列精簡 */
+@media (max-width: 600px) {
+  .pool { width: 152px !important; padding-left: 6px; padding-right: 6px; }
+  .pool .hint { display: none; }
+  .splitter { display: none; }
+  .card { grid-template-columns: 24px minmax(0, 1fr); column-gap: 3px; padding-right: 4px; }
+  .card .eye, .card .cmode { width: 24px; }
+  .card .wk { gap: 1px; }
+  .card .wk span { font-size: 10px; }
+  #viewMode { display: none; }            /* 手機自動切成單日 */
+  .caltop .tools { gap: 4px; }
+  .caltop .tools .icon { width: 32px; height: 32px; }
+  .daytabs { gap: 2px; padding: 4px; }
+  .daytabs button b { font-size: 11px; }
+  .daytabs button span { font-size: 10px; }
+}
