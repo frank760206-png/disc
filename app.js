@@ -58,6 +58,9 @@ const App = (() => {
     return m ? `https://script.google.com/macros/s/${m[1]}/exec` : '';
   }
 
+  // 預設連到自己的試算表（網址不是祕密，資料靠密碼保護）
+  const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbxlEzS1wgC6NeG2M1kMqSSPNLTUqGETZUY3LEQOpskuzv3ajZgaPnuMdInb9hwzFq-tvw/exec';
+
   function openSettings(cancellable = true) {
     placeTabs(false);
     $('rev').hidden = true;
@@ -65,7 +68,7 @@ const App = (() => {
     $('pop').hidden = true;
     $('setup').hidden = false;
     document.querySelectorAll('.apptabs .seg button').forEach(b => b.classList.remove('on'));
-    $('setUrl').value = settings.url || normalizeUrl(decodeURIComponent((location.hash.match(/[#&]u=([^&]+)/) || [])[1] || ''));
+    $('setUrl').value = settings.url || normalizeUrl(decodeURIComponent((location.hash.match(/[#&]u=([^&]+)/) || [])[1] || '')) || DEFAULT_URL;
     $('setToken').value = settings.token || '';
     $('setName').value = settings.name || '';
     $('setDateFmt').value = U.prefs.dateFmt;
@@ -86,6 +89,7 @@ const App = (() => {
     stores.forEach((c, i) => { storeShort[c] = shorts[i] || c.charAt(0).toUpperCase(); });
     const p = { dateFmt: $('setDateFmt').value, startDay: Number($('setStartDay').value), stores, storeShort };
     const msg = (type, t) => { $('setMsg').className = 'msg ' + type; $('setMsg').textContent = t; $('setMsg').hidden = false; };
+    if (!$('setUrl').value.trim()) return msg('err', '請貼上試算表網址');
     if (!url) return msg('err', '網址格式不對：請貼上 Apps Script 部署網址（https://script.google.com/macros/s/……/exec），或只貼 AKfycb 開頭的部署 ID');
     if (!s.token) return msg('err', '請填寫密碼');
     if (!s.name) return msg('err', '請填寫姓名');
